@@ -6,6 +6,7 @@ from   ase.db                  import connect
 from   ase.dft.kpoints         import bandpath
 from   ase.calculators.vasp    import Vasp
 from   phonopy                 import Phonopy
+from   pyspglib                import spglib
 
 class Pd():
 
@@ -13,11 +14,12 @@ class Pd():
         self._name     = name
         self._cn       = connect("{}.db".format(name))
         self._pressure = 0
-        self._crystal  = None
         self._phonon   = None
-        self._prepare_for_phonon = False
         self._load_settings()
         self._prepare_folders()
+        try: ret = self._cn.get(Initial = True)
+        except:
+            self._cn.write(self._xtal, Initial = True)
 
     def _prepare_folders(self):
         dirs = [ "data",
@@ -38,42 +40,40 @@ class Pd():
                 self.__dict__["_"+f.replace("_settings.py","")] = settings
                 del settings
 
-    def _get_crystal(self, pressure = None):
+    def _get_similar_crystal(self, pressure):
+        xs = list(self._cn.select(Basic = True))
+        if len(xs) == 0: return False, None
+        xs = sorted(xs, key = lambda x: (x.Pressure - pressure)**2)
+        optimized = ( xs[0].Pressure - pressure == 0 )
+        return optimized, xs[0].toatoms()
+
+    def _get_crystal(self):
         ret = None
-        if pressure is None:
-            ret = self._crystal
-        else:
-            try:
-                row = self._cn.get(Pressure = pressure,
-                                   Basic    = True )
-                print("Reading ...")
-                ret = row.toatoms()
-            except: pass
-        if ret is None:
-            if not self._crystal is None:
-                return self._crystal
-            if type(self._xtal) is str:
-                self._crystal = read(self._xtal)
-            else:
-                self._crystal = Atoms(**self._xtal)
-            self._cn.write(self._crystal, Initial = True)
-            return self._crystal
-        self._crystal = ret
+
+        try: ret = self._cn.get(Initial = True)
+        except: pass
+        try: ret = self._cn.get(Pressure = self._pressure,
+                                Basic    = True)
+        except: pass
+
+        if not ret is None:
+            ret = ret.toatoms()
+
         return ret
 
-    def _get_calculator(self, purpose, pressure = None):
+    def _get_calculator(self, purpose):
         ret = None
         if purpose == "optimize":
             settings = self._common.copy()
             settings.update(self._opt)
-            if not pressure is None:
-                settings["pstress"] = pressure
+            if not self._pressure is None:
+                settings["pstress"] = self._pressure
             ret = Vasp(**settings)
         if purpose == "super_optimize":
             settings = self._common.copy()
             settings.update(self._sopt)
-            if not pressure is None:
-                settings["pstress"] = pressure
+            if not self._pressure is None:
+                settings["pstress"] = self._pressure
             ret = Vasp(**settings)
         if purpose == "ftest":
             settings = self._common.copy()
@@ -107,29 +107,39 @@ class Pd():
 
     def optimize_to_pressure(self, pressure, run):
         self._pressure = pressure
+        optimized, x = self._get_similar_crystal(pressure)
+        if optimized: return
+        if x is None: x = self._get_crystal()
         calculator = self._get_calculator("optimize")
-        x = self._get_crystal(pressure)
         x.set_calculator(calculator)
         E = self._get_energy(x, run)
         H = E + pressure * x.get_volume() / 1602.176627
         HoA = H/len(x)
+        spg = spglib.get_spacegroup(x)
         self._cn.write(x,
-                       Basic    = True,
-                       Pressure = pressure)
-        self._crystal = x
-        self._prepare_for_phonon = False
+                       Basic      = True,
+                       Pressure   = pressure,
+                       SpaceGroup = spg)
 
     def prepare_supercell(self, repeat, fmax, run):
-        x = self._crystal.repeat(repeat)
+        try:
+            self._cn.get(Pressure = self._pressure,
+                         Supercell = True,
+                         Displaced = False)
+            return
+        except: pass
+        x = self._get_crystal().repeat(repeat)
         while not self._check_forces(x, fmax, run):
             print("Optimizing {}".format(self._pressure))
             calculator = self._get_calculator("super_optimize", pressure = self._pressure)
             x.set_calculator(calculator)
             E = self._get_energy(x, run)
+        spg = spglib.get_spacegroup(x)
         self._cn.write(x,
-                       Supercell = True,
-                       Displaced = False,
-                       Pressure  = self._pressure)
+                       Supercell  = True,
+                       Displaced  = False,
+                       Pressure   = self._pressure,
+                       SpaceGroup = spg)
 
     def calculate_phonons(self, run):
         self._prepare_phonons()
@@ -159,9 +169,12 @@ class Pd():
 
         phonon.generate_displacements(distance=self._phpy["h_step"])
         #disps = phonon.get_displacements()
+        phonon.supercellrow = row
         self._phonon = phonon
 
     def _calculate_forces(self, run):
+        try: return self._phonon.supercellrow.data["Forces"]
+        except: pass
         supercells = self._phonon.get_supercells_with_displacements()
         set_of_forces = []
 
@@ -188,6 +201,9 @@ class Pd():
                 force -= drift_force / forces.shape[0]
 
             set_of_forces.append(forces)
+
+        self._cn.update(self._phonon.supercellrow.id,
+                        data = { "Forces" : set_of_forces })
         return set_of_forces
 
     def _calculate_dos(self):
