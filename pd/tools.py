@@ -4,6 +4,42 @@ from   ase.db           import connect
 from   matplotlib       import pyplot           as plt
 from   matplotlib       import gridspec         as gridspec
 
+def get_ideal_bandpath(xtal):
+
+    bp = { "cub" : "GXMGRX,MR",
+           "bcc" : "GHNGPH,PN",
+           "fcc" : "GXWKGLUWLK,UX"
+           "hex" : "GMKGALHA,LM,KH"
+           "tet" : "GXMGZRAZ,XR,MA" }
+
+    sd = spglib.get_symmetry_dataset(xtal)
+    number = sd["number"]
+    spacegroup = sd["spacegroup"]
+
+    if number in range(195, 230 + 1):
+        # Cubic spacegroup
+        if spacegroup[0] == "P":
+            # Primitive
+            return bp["cub"]
+        if spacegroup[0] == "I":
+            # Base Center Cubic
+            return bp["bcc"]
+        if spacegroup[0] == "F":
+            # Fase Center Cubic
+            return bp["fcc"]
+
+    if number in range(168, 194 + 1):
+        # Hexagonal spacegroup
+        return bp["hex"]
+
+    if number in range(75, 142 + 1):
+        # Tetragonal spacegroup
+        if spacegroup[0] == "P":
+            # Primitive
+            return bp["tet"]
+
+    raise Exception("Cannot dermine ideal band path for spacegroup {}".format(spacegroup))
+
 def plot_phonon(row):
 
     d = row.data["Dos"]

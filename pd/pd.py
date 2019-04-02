@@ -131,7 +131,7 @@ class Pd():
         x = self._get_crystal().repeat(repeat)
         while not self._check_forces(x, fmax, run):
             print("Optimizing {}".format(self._pressure))
-            calculator = self._get_calculator("super_optimize", pressure = self._pressure)
+            calculator = self._get_calculator("super_optimize")
             x.set_calculator(calculator)
             E = self._get_energy(x, run)
         spg = spglib.get_spacegroup(x)
@@ -218,6 +218,10 @@ class Pd():
         return omega, dos
 
     def _calculate_bands(self):
+
+        if self._bands["path"].lower() == "auto":
+            pass
+
 
         kpts, x, X = bandpath(self._bands["path"],
                               np.identity(3),
