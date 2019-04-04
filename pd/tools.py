@@ -1,21 +1,47 @@
 import os
 import sys
+import pkgutil
+import pd.examples
+from   importlib        import import_module
 from   ase.db           import connect
 from   pyspglib         import spglib
 from   matplotlib       import pyplot           as plt
 from   matplotlib       import gridspec         as gridspec
 
+def get_examples():
+    ret = []
+    package = pd.examples
+    for importer, modname, ispkg in pkgutil.walk_packages(path=package.__path__, 
+                                                          prefix=package.__name__ + ".",
+                                                          onerror=lambda x: None):
+        ret.append(modname.split(".")[-1])
+    return ret
+
+def make_example(name, folder):
+    module_name = "pd.examples.{}".format(name)
+    m = import_module(module_name)
+
+    os.makedirs("{}/{}/".format(folder,"settings"), exist_ok = True)
+
+    with open("{}/run.py".format(folder), "wb") as fo:
+        fo.write(m.run)
+    
+    for s in m.settings:
+        with open("{}/settings/{}".format(folder, s), "w") as fo:
+            fo.write(m.settings[s])
+
 def get_ideal_bandpath(xtal):
 
     bp = { "cub" : "GXMGRX,MR",
            "bcc" : "GHNGPH,PN",
-           "fcc" : "GXWKGLUWLK,UX",
+           #"fcc" : "GXWKGLUWLK,UX",
+           "fcc" : "GXMG",
            "hex" : "GMKGALHA,LM,KH",
            "tet" : "GXMGZRAZ,XR,MA" }
 
     sd = spglib.get_symmetry_dataset(xtal)
     number = sd["number"]
-    spacegroup = sd["spacegroup"]
+    spacegroup = sd["international"]
 
     if number in range(195, 230 + 1):
         # Cubic spacegroup
@@ -50,19 +76,19 @@ def plot_point(rows, point):
         points = [ pt for pt in b["path"] if pt != "," ]
         ind_point = points.index(point)
         coo_point = b["X"][ind_point]
-        ind_coord = b["x"].index(coo_point)
-        bands = b["bands"][ind_coord]
-        data.appned([p,bands])
+        ind_coord = list(b["x"]).index(coo_point)
+        bands = b["bands"][0][ind_coord]
+        data.append([p,bands])
 
-    data = sorted(data, key = lambda x: x[1])
+    data = sorted(data, key = lambda x: x[0])
 
     bands = [ b for p, b in data ]
-
+    ps    = [ p for p, b in data ]
 
     gs = gridspec.GridSpec(1,10)
     ax1 = plt.subplot(gs[0,:9])
 
-    ax1.plot(b["x"],
+    ax1.plot(ps,
              bands, "b-", lw=1.8)
 
     #ylim = list(ax1.get_ylim())
@@ -87,10 +113,16 @@ def plot_point(rows, point):
     #plt.tight_layout()
     #os.makedirs("figures",exist_ok=True)
 
-    plt.savefig("{}/{}.{}.{:05d}.png".format("figures",
-                                             row.name,
-                                             "point-{}".format(point),
-                                             row.Pressure))
+    name = "name"
+    try: name = row.name
+    except: pass
+
+    ax1.set_title("Energies in {} - point".format(point))
+
+    figname = "{}/{}.{}.png".format("figures",
+                                    name,
+                                    "point-{}".format(point))
+    plt.savefig(figname)
 
 def plot_phonon(row):
 
@@ -126,4 +158,13 @@ def plot_phonon(row):
     plt.tight_layout()
     os.makedirs("figures",exist_ok=True)
 
-    plt.savefig("{}/{:05d}.png".format("figures",row.Pressure))
+    name = "name"
+    try: name = row.name
+    except: pass
+
+    figname = "{}/{}.{}.{:05d}.png".format("figures",
+                                           name,
+                                           "bands",
+                                           row.Pressure)
+    print("Saving {}".format(figname))
+    plt.savefig(figname)

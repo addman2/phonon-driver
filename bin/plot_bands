@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+
+import sys
+from ase.db import connect
+from pd.tools import plot_phonon
+
+if __name__ == "__main__":
+
+    cn = connect(sys.argv[1])
+
+    for row in cn.select(Basic = True):
+        print(row)
+        #try: plot_phonon(row)
+        #except: pass
+        plot_phonon(row)

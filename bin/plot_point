@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+
+import sys
+from ase.db import connect
+from pd.tools import plot_point
+
+if __name__ == "__main__":
+
+    cn = connect(sys.argv[1])
+    point = sys.argv[2]
+
+    rows = list(cn.select(Basic=True))
+    plot_point(rows, point)

@@ -7,6 +7,7 @@ from   ase.dft.kpoints         import bandpath
 from   ase.calculators.vasp    import Vasp
 from   phonopy                 import Phonopy
 from   pyspglib                import spglib
+from   pd.tools                import get_ideal_bandpath
 
 class Pd():
 
@@ -234,10 +235,18 @@ class Pd():
     def _calculate_bands(self):
 
         if self._bands["path"].lower() == "auto":
-            pass
+            row = self._cn.get(Pressure  = self._pressure,
+                               Supercell = True,
+                               Displaced = False)
+            x = row.toatoms()
+            self._bands["path"] = get_ideal_bandpath(x)
 
 
-        kpts, x, X = bandpath(self._bands["path"],
+        path = self._bands["path"]
+        try: path = self._bands["pathp"]
+        except: pass
+
+        kpts, x, X = bandpath(path,
                               np.identity(3),
                               self._bands["npoints"])
         self._phonon.set_band_structure([kpts])
