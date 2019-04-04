@@ -21,6 +21,16 @@ class Pd():
         except:
             self._cn.write(self._xtal, Initial = True)
 
+    def _logthis(self,s):
+        with open("pd.log","a") as f:
+            ts = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+            tw = textwrap.TextWrapper()
+            for i, line in enumerate(tw.wrap(s)):
+                if i == 0:
+                    f.write(ts + ": " + line + "\n")
+                else:
+                    f.write(" " * (len(ts) + 2) + line + "\n")
+
     def _prepare_folders(self):
         dirs = [ "data",
                  "figures",
@@ -34,7 +44,7 @@ class Pd():
             break
         for f in sf:
             global settings
-            print(" Loading {} ...".format(f))
+            self._logthis (" Loading {} ...".format(f))
             with open("{}/{}".format(d,f),"rb") as fi:
                 exec(fi.read(),globals())
                 self.__dict__["_"+f.replace("_settings.py","")] = settings
@@ -102,8 +112,12 @@ class Pd():
         crystal.set_calculator(calculator)
         E = self._get_energy(crystal, run)
         forces = crystal.get_forces()
-        forces = np.linalg.norm(forces, axis=1)
-        return forces.any() < fmax
+        normforces = np.linalg.norm(forces, axis=1)
+        msg = ""
+        for ii in range(len(forces)):
+            msg += (3*"{:9.6f}" + " | {:9.6f}\n").format(*(forces[ii]),normforces[ii])
+        self._logthis(msg)
+        return normforces.all() < fmax
 
     def optimize_to_pressure(self, pressure, run):
         self._pressure = pressure
@@ -130,7 +144,7 @@ class Pd():
         except: pass
         x = self._get_crystal().repeat(repeat)
         while not self._check_forces(x, fmax, run):
-            print("Optimizing {}".format(self._pressure))
+            self._logthis("Optimizing {}".format(self._pressure))
             calculator = self._get_calculator("super_optimize")
             x.set_calculator(calculator)
             E = self._get_energy(x, run)

@@ -1,6 +1,7 @@
 import os
 import sys
 from   ase.db           import connect
+from   pyspglib         import spglib
 from   matplotlib       import pyplot           as plt
 from   matplotlib       import gridspec         as gridspec
 
@@ -8,8 +9,8 @@ def get_ideal_bandpath(xtal):
 
     bp = { "cub" : "GXMGRX,MR",
            "bcc" : "GHNGPH,PN",
-           "fcc" : "GXWKGLUWLK,UX"
-           "hex" : "GMKGALHA,LM,KH"
+           "fcc" : "GXWKGLUWLK,UX",
+           "hex" : "GMKGALHA,LM,KH",
            "tet" : "GXMGZRAZ,XR,MA" }
 
     sd = spglib.get_symmetry_dataset(xtal)
@@ -39,6 +40,57 @@ def get_ideal_bandpath(xtal):
             return bp["tet"]
 
     raise Exception("Cannot dermine ideal band path for spacegroup {}".format(spacegroup))
+
+def plot_point(rows, point):
+
+    data = []
+    for row in rows:
+        p = row.Pressure
+        b = row.data["Bands"]
+        points = [ pt for pt in b["path"] if pt != "," ]
+        ind_point = points.index(point)
+        coo_point = b["X"][ind_point]
+        ind_coord = b["x"].index(coo_point)
+        bands = b["bands"][ind_coord]
+        data.appned([p,bands])
+
+    data = sorted(data, key = lambda x: x[1])
+
+    bands = [ b for p, b in data ]
+
+
+    gs = gridspec.GridSpec(1,10)
+    ax1 = plt.subplot(gs[0,:9])
+
+    ax1.plot(b["x"],
+             bands, "b-", lw=1.8)
+
+    #ylim = list(ax1.get_ylim())
+    ##ylim[0] = 0.0
+
+    #for X in b["X"]:
+    #    ax1.plot( [X]*2,ylim,"k-", lw=2.0)
+
+    #ax1.plot([min(b["x"]),max(b["x"])],[0,0],"r")
+
+    #ax1.set_xlim([min(b["x"]),max(b["x"])])
+    #ax1.set_ylim(ylim)
+    #ax1.set_xticks(b["X"])
+    #points = [ p for p in b["path"] if p != "," ]
+    #ax1.set_xticklabels([x.replace("Gamma","$\Gamma$") for x in points])
+
+    #ax1.set_xlabel("q - path")
+    #ax1.set_ylabel("[THz]")
+
+    #ax2.plot(d[1],d[0],"b-")
+
+    #plt.tight_layout()
+    #os.makedirs("figures",exist_ok=True)
+
+    plt.savefig("{}/{}.{}.{:05d}.png".format("figures",
+                                             row.name,
+                                             "point-{}".format(point),
+                                             row.Pressure))
 
 def plot_phonon(row):
 
@@ -75,10 +127,3 @@ def plot_phonon(row):
     os.makedirs("figures",exist_ok=True)
 
     plt.savefig("{}/{:05d}.png".format("figures",row.Pressure))
-
-if __name__ == "__main__":
-
-    cn = connect(sys.argv[1])
-
-    for row in cn.select(Basic = True):
-        plot_phonon(row)
