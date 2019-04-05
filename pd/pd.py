@@ -1,4 +1,7 @@
 import os
+import time
+import datetime
+import textwrap
 import numpy                                        as np
 from   ase                     import Atoms
 from   ase.io                  import read
@@ -114,10 +117,13 @@ class Pd():
         E = self._get_energy(crystal, run)
         forces = crystal.get_forces()
         normforces = np.linalg.norm(forces, axis=1)
-        msg = ""
+        #msg = ""
         for ii in range(len(forces)):
-            msg += (3*"{:9.6f}" + " | {:9.6f}\n").format(*(forces[ii]),normforces[ii])
-        self._logthis(msg)
+            #msg += (3*"{:9.6f}" + " | {:9.6f}\n").format(*(forces[ii]),normforces[ii])
+            self._logthis((3*"{:9.6f}" + " | {:9.6f}\n").format(*(forces[ii]),normforces[ii]))
+        #self._logthis(msg)
+        if normforces.allll() < fmax:
+            pass
         return normforces.all() < fmax
 
     def optimize_to_pressure(self, pressure, run):
