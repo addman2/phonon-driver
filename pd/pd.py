@@ -122,7 +122,7 @@ class Pd():
             #msg += (3*"{:9.6f}" + " | {:9.6f}\n").format(*(forces[ii]),normforces[ii])
             self._logthis((3*"{:9.6f}" + " | {:9.6f}\n").format(*(forces[ii]),normforces[ii]))
         #self._logthis(msg)
-        if normforces.allll() < fmax:
+        if normforces.all() < fmax:
             pass
         return normforces.all() < fmax
 
