@@ -37,6 +37,12 @@ def work():
                         metavar="AMP",
                         default=0.5,
                         help="Amplitude (in Angstorm)")
+    parser.add_argument("-s",
+                        type=float,
+                        dest="pressure",
+                        metavar="Pressure",
+                        default=0.0,
+                        help="Pressure")
     parser.add_argument("-p",
                         type=float,
                         dest="phase",
@@ -63,7 +69,7 @@ def work():
             print("No such database {}.db".format(db))
             sys.exit()
     p = Pd(db)
-    x = p.show_phonon(None)
+    x = p.show_phonon(None, pressure = args.pressure)
 
     x.set_modulations(args.d, [[ args.q, args.index, args.index, args.phase ]])
     modulated = x.get_modulated_supercells()[0]
