@@ -6,13 +6,19 @@ from argparse import ArgumentParser
 from ase import Atoms
 from pd.pd import *
 
+def write(mod, name):
+    xtal = Atoms(mod.symbols,
+                 cell = mod.cell,
+                 positions = mod.get_positions())
+    xtal.write(name)
+
 def work():
     parser = ArgumentParser(description = "Tool producing modulated supercells")
     parser.add_argument("Database",
                         metavar="DATABASE",
                         type=str,)
     parser.add_argument("-q",
-                        type=int,
+                        type=float,
                         dest="q",
                         metavar="Q",
                         nargs=3,
@@ -30,10 +36,10 @@ def work():
                         dest="index",
                         metavar="I",
                         default=0,
-                        help="Mode index")
+                        help="Mode index. If you want to write all modulations i = -1")
     parser.add_argument("-a",
                         type=float,
-                        dest="ampidute",
+                        dest="ampl",
                         metavar="AMP",
                         default=0.5,
                         help="Amplitude (in Angstorm)")
@@ -69,15 +75,29 @@ def work():
             print("No such database {}.db".format(db))
             sys.exit()
     p = Pd(db)
-    x = p.show_phonon(None, pressure = args.pressure)
+    x = p.show_phonon(pressure = args.pressure)
 
-    x.set_modulations(args.d, [[ args.q, args.index, args.index, args.phase ]])
-    modulated = x.get_modulated_supercells()[0]
+    freqs = x.get_frequencies(args.q)
 
-    xtal = Atoms(modulated.symbols,
-                 cell = modulated.cell,
-                 positions = modulated.get_positions())
-    xtal.write(args.dest)
+    if args.index == -1:
+        numof = len(freqs)
+        mods = []
+        for ii in range(numof):
+            mods.append([args.q, ii, args.ampl, args.phase])
+    else:
+        mods = [[ args.q, args.index, args.ampl, args.phase ]]
+
+    x.set_modulations(args.d, mods)
+    modulateds = x.get_modulated_supercells()
+
+    if len(modulateds) == 1:
+        print("Frequency: {:5.3} THz".format(freqs[args.index]))
+        write(modulateds[0], args.dest)
+    else:
+        for ii, mod in enumerate(modulateds):
+            print("Frequency i = {}: {:5.3f} THz".format(ii, freqs[ii]))
+            write(mod, args.dest + ".{}".format(ii))
+
 
 if __name__ == "__main__":
     work()

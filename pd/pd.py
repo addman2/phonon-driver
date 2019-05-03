@@ -266,7 +266,7 @@ class Pd():
 
         return band_data
 
-    def show_phonon(self, q, pressure = 0):
+    def show_phonon(self, pressure = 0):
         self.optimize_to_pressure(pressure, None)
         self.prepare_supercell(None, None, None)
         self.calculate_phonons(None)
