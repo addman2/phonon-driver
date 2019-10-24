@@ -1,0 +1,103 @@
+\documentclass[12pt]{article}
+\usepackage{lingmacros}
+\usepackage{tree-dvips}
+
+\usepackage[
+backend=bibtex,
+style=alphabetic,
+sorting=ynt
+]{biblatex}
+\addbibresource{Manual}
+
+\begin{document}
+
+\newcommand{\pe}{phonon-evol}
+
+\title{User guide \pe}
+\date{2019}
+\author{Oto Kohul\'{a}k}
+
+\maketitle
+
+\tableofcontents
+
+\section{Purpouse}
+
+\subsection{Introduction}
+Software package \pe was made to predict structural phase transition in solid state physics. Durring the developent the focus was to make simple python-based object-oriented lightweight easy-to-use program, which after the release would be licenced under GNU GPL licence\cite{GPL}. Code is not a stand-alone work, howewer, it is using various libraries such as ase or phonopy\footnote{For full list of dependecies please look at \ref{deps}.}
+
+\subsection{Physics behind}
+
+For any defined pressure ($p$) and temperature $T$ thermodynamically the most stable structure ist the one which minimizes the Gibbs potential ($G$):
+
+\begin{equation}
+G(X; p, T) = E(X) + pV(X) + TS(X)
+\end{equation}
+
+Where $X$ is order parameter\footnote{Any structural parameter which defines the structure.} (in general a multidimenional vector), V is volume of the system and S is the entropy (both as a function of order parameter). In other word the structural parameter which represents the lowest extrem of Gibbs potential is the one thermodynamically stable. If we would move the order parameter of the global minimum a thermodynamic forces would emerge they restore the equillibrium. If we write down the Gibbs potential as Taylor searies the linear therms wanishes:
+
+\begin{equation}
+G(X; p, T) = \sum_{i = 1}^N \sum_{j = 1}^N c_{ij} (X_i - X_0) (X_j - X_0) + O(X^3)
+\end{equation}
+
+We can focuse on quadratic therm $c_{ij}$. Obviously there exist a orthogonal basis set, where the quadratic matric is diagonal. 
+
+At very small or zero temperature ($T = 0K$), the entropy therm can be neglected. At high pressures even energetically less favaroble structure can become stable via lower volume. From now on we will focus on pressure induced phase transitions. If we gradually increase the pressure, we will stay in the same minimum\footnote{Abrupt change may lead to outage from minimum.}. When another thermodynamically favorable minimum appears often it is accopmained with lowering the barrier between these two minima\footnote{See Bell-Evans-Polanyi principle.}. This will result in lower eigenvalues of the matrix, which can even become negative (and the minimum will no longer exists). So if we examinate this matrix, which is assosiated with phonon modes we can investigate the possibilities of phase transitions. We have to anly carefully increase the pressure and calculate the phonon modes, which are two most fundametnal functionalities of our code.
+
+
+\section{Workflow}
+
+The core element of \pe workflow is the \textit{Pd} object. Is stores every parameter and feature of studied system. When object si initialized (constructed) it assumes all of the settings are alredy stored in the \texttt{settings} directory in separated files (which will be discussed later). One has create this object in python script such as Quantum ESPRESSO\cite{QE}.
+
+\begin{verbatim}
+from pd.pd import *
+
+def main():
+
+    START =   0 # kbar
+    STOP  = 601 # kbar
+    STEP  =  40 # kbar
+
+    runs  = dict ( Aurel = [" "],
+                   Local = ["X"]  )
+
+    pd = Pd("Name-of-the-system")
+
+    for Pressure in range(START, STOP, STEP):
+        pd.optimize_to_pressure(Pressure, runs)
+        pd.prepare_supercell((2,2,2), 0.001, runs)
+        pd.calculate_phonons(runs)
+
+if __name__ == "__main__":
+    nmc = main()
+\end{verbatim}
+
+By invoking the method \texttt{optimize\_to\_pressure}  object will optimize the structure to desired pressure. All of the structural optimizations as well as the fonon calculation are performed by \texttt{VASP}\cite{vasp} package, which employs the DFT theory. However, since \texttt{Pd} uses ASE driver to comunicate with calculator it is easy to use other calculators as well, such as Quantum ESPRESSO\cite{QE}. Although, this feature was never tested. All data which were once calculated are stored in SQLite3 database\cite{SQL} therefore if one invokes the optimization to pressure which was already been calculated, the optimization will not occur, instead the precalculated data would be used. The same happend if someone tries to run phonon at some pressure, which has been already calculated. 
+
+\subsection{Aurel supercomputer}
+
+Software, which calculats physical quantities, can be executed either on local machine or on supercomputer via \texttt{runvasp.py} script.
+
+\subsection{Dependecies}\label{deps}
+
+\begin{itemize}
+  \item any OS (Linux, Mac OS, Windows) which supports python3
+  \item phonopy library
+  \item ASE library
+  \item numpy library
+  \item virtualenv library (recommanded)
+  \item matplotlib library (recommanded)
+  \item virtualenv library (recommanded)
+\end{itemize}
+
+\subsection{Installation}
+
+\section{Examples}
+
+\subsection{Germanium}
+
+\subsection{Silicon}
+
+\printbibliography
+
+\end{document}
