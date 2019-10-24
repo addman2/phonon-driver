@@ -17,3 +17,12 @@ bin/pip*
 bin/pygmentize
 *__pycache__*
 *egg-info*
+*.toc
+*.pdf
+*-blx.bib
+*.bbl
+*.aux
+*.blg
+*doc/*log
+*.run.xml
+*.synctex.gz
