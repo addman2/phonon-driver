@@ -1,6 +1,4 @@
 \documentclass[12pt]{article}
-\usepackage{lingmacros}
-\usepackage{tree-dvips}
 
 \usepackage[
 backend=bibtex,
@@ -37,7 +35,7 @@ G(X; p, T) = E(X) + pV(X) + TS(X)
 Where $X$ is order parameter\footnote{Any structural parameter which defines the structure.} (in general a multidimenional vector), V is volume of the system and S is the entropy (both as a function of order parameter). In other word the structural parameter which represents the lowest extrem of Gibbs potential is the one thermodynamically stable. If we would move the order parameter of the global minimum a thermodynamic forces would emerge they restore the equillibrium. If we write down the Gibbs potential as Taylor searies the linear therms wanishes:
 
 \begin{equation}
-G(X; p, T) = \sum_{i = 1}^N \sum_{j = 1}^N c_{ij} (X_i - X_0) (X_j - X_0) + O(X^3)
+G(X; p, T) = \frac{1}{2}\sum_{i = 1}^N \sum_{j = 1}^N c_{ij} (X_i - X_0) (X_j - X_0) + O(X^3)
 \end{equation}
 
 We can focuse on quadratic therm $c_{ij}$. Obviously there exist a orthogonal basis set, where the quadratic matric is diagonal. 
@@ -47,7 +45,7 @@ At very small or zero temperature ($T = 0K$), the entropy therm can be neglected
 
 \section{Workflow}
 
-The core element of \pe workflow is the \textit{Pd} object. Is stores every parameter and feature of studied system. When object si initialized (constructed) it assumes all of the settings are alredy stored in the \texttt{settings} directory in separated files (which will be discussed later). One has create this object in python script such as Quantum ESPRESSO\cite{QE}.
+The core element of \pe workflow is the \textit{Pd} object. Is stores every parameter and feature of studied system. When object si initialized (constructed) it assumes all of the settings are alredy stored in the \texttt{settings} directory in separated files (which will be discussed later). One has create this object in python script such as:
 
 \begin{verbatim}
 from pd.pd import *
@@ -72,13 +70,19 @@ if __name__ == "__main__":
     nmc = main()
 \end{verbatim}
 
-By invoking the method \texttt{optimize\_to\_pressure}  object will optimize the structure to desired pressure. All of the structural optimizations as well as the fonon calculation are performed by \texttt{VASP}\cite{vasp} package, which employs the DFT theory. However, since \texttt{Pd} uses ASE driver to comunicate with calculator it is easy to use other calculators as well, such as Quantum ESPRESSO\cite{QE}. Although, this feature was never tested. All data which were once calculated are stored in SQLite3 database\cite{SQL} therefore if one invokes the optimization to pressure which was already been calculated, the optimization will not occur, instead the precalculated data would be used. The same happend if someone tries to run phonon at some pressure, which has been already calculated. 
+By invoking the method \texttt{optimize\_to\_pressure}  object will optimize the structure to desired pressure. All of the structural optimizations as well as the fonon calculation are performed by \texttt{VASP}\cite{vasp} package, which employs the DFT theory. However, since \texttt{Pd} uses ASE driver to comunicate with calculator it is easy to use other calculators as well, such as Quantum ESPRESSO\cite{QE}. Although, this feature has never been tested. All data which were once calculated are stored in SQLite3 database\cite{SQL} therefore if one invokes the optimization to pressure which was already been calculated, the optimization will not occur, instead the precalculated data would be used. The same happend if someone tries to run phonon at some pressure, which has been already calculated. For phonon calculation the phonopy package is used. In the beginnig one has to set the desired supercell dimensions and the displacement for the finited diference method (see the \texttt{prepare\_supercell} method).
 
 \subsection{Aurel supercomputer}
 
-Software, which calculats physical quantities, can be executed either on local machine or on supercomputer via \texttt{runvasp.py} script.
+Software, which calculats physical quantities, can be executed either on local machine or on supercomputer via \texttt{runvasp.py} script. Detailed description can be optained by executing:
+
+\begin{verbatim}
+python3 runvasp.py --help
+\end{verbatim}
 
 \subsection{Dependecies}\label{deps}
+
+The most important dependecies are listed here:
 
 \begin{itemize}
   \item any OS (Linux, Mac OS, Windows) which supports python3
@@ -90,7 +94,15 @@ Software, which calculats physical quantities, can be executed either on local m
   \item virtualenv library (recommanded)
 \end{itemize}
 
+For complete list of package dependecies please look at the \texttt{requirements.txt} file in root directory of the package. 
+
 \subsection{Installation}
+
+Package is stored on local gitlab server:
+\begin{verbatim}
+https://gitlab.mtf.stuba.sk/kohulak/phonon-driver
+\end{verbatim}
+After one downloads the package it is ready to use. Package contains proper \texttt{setup.py} file for correct integration. Binary files are in \texttt{bin} directory while library is in \texttt{pd} directory. It is recomanded to use the package in virtual environment.
 
 \section{Examples}
 
