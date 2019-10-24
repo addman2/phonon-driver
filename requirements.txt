@@ -20,9 +20,11 @@ matplotlib==3.0.3
 numpy==1.16.2
 paramiko==2.4.2
 parso==0.3.4
+-e git+git@gitlab.mtf.stuba.sk:kohulak/phonon-driver.git@1502f055fdf27e03750bff37ae1325342e619f96#egg=pd
 pexpect==4.6.0
 phonopy==2.1.1
 pickleshare==0.7.5
+pkg-resources==0.0.0
 prompt-toolkit==2.0.9
 ptyprocess==0.6.0
 pyasn1==0.4.5
